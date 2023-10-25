@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google-site-verification" content="QxsDtoeTgZKEjzA7NKUM3zO_bL4Px3zs4n8-7U8oNh0" />
+    <title>Pure JavaScript TOTP Token Generator</title>
+<!-- Site Specific css -->
+<style type="text/css">
+body{
+    font-family:Arial Unicode,Arial,Sans-Serif;
+}
+a{
+    color:#00F;
+}
+code{
+    color:#090;
+    font-weight:bold;
+    font-family:Consolas,Lucida Console,Monospace;
+}
+.form{
+    padding:0.5em;
+}
+.control-label{ /*.form label{*/
+    display:inline-block;
+    width:20%;
+}
+.container{
+    max-width:800px;
+    margin-left:auto;
+    margin-right:auto;
+}
+#singleHelpContainer{
+  display : inline-block;
+}
+.about{
+    display:block;
+    text-align:right;
+    color:#888;
+    font-size:8pt;
+}
+.about:hover{
+    color:#000;
+}.totp{
+    font-size:20pt;
+}
+.online-only,.offline-only{
+    display:none;
+}
+.listLabel1{
+  display : inline-block;
+  width : 55px;
+}
+.listLabel2{
+  display : inline-block;
+  width : 100px;
+}
+.listLabel3{
+  display : inline-block;
+  width : 110px;
+}
+.alert{
+    border:1px solid transparent;
+    border-radius:1em;
+    padding:1em;
+}
+.alert-danger{
+    background-color:#FDD;
+}
+.alert-info{
+    background-color:#DDF;
+}
+.btn{
+    padding:0.5em;
+}
+.btn-primary{
+    background-color:#44F;
+    border:2px solid #00F;
+    color:#FFF;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pure JavaScript TOTP Token Generator</h1>
+            <p>
+                This website allows you to generate a TOTP Token from either 
+                a single TOTP secret code or a list of OTPAuth url. 
+                This page has no external dependency and can run on its own. 
+                It runs completely in your browser and can be used offline.
+            </p>
+            <div id="warningDiv" class="alert alert-danger online-only">
+                <b><u>WARNING !!!</u></b>
+                &nbsp;&nbsp;[<a id="hideWarningButton">Hide Warning</a>]
+                <br><br>
+                This site is currently online.<br>
+                Although we don't collect any code / data from this page, we recommend that you run it offline if you are going to use it for real codes.<br>
+                You can just directly save this page or download this page from the links below and use it offline.
+                If the link does not prompt for a download,
+                you can right click it and then save the link target as <code>totp.html</code>
+                (or any other file name).
+                <br><br>
+                <label class='listLabel3'>
+                    <a href="./index.html" download="totp.html">index.html</a>
+                </label> : uncompressed-js version (38KB)<br>
+                <label class='listLabel3'>
+                    <a href="./index.min.html" download="totp.html">index.min.html</a>
+                </label> : compressed-js version (22KB)<br>
+                <label class='listLabel3'>
+                    <a href="https://cable.ayra.ch/totp/" download="totp.html">totp.html</a>
+                </label> : original author's code, without OTPAuth url fetcher (18KB)
+            </div>
+        <h2 style="display:inline-block;"><u>Single Token Generator</u></h2>
+        &nbsp;&nbsp;[<a id="singleHelpButton">Show Help</a>]
+        <div id="singleHelpDiv" class="alert alert-info" style="display:none">
+            <h3>How To Use</h3>
+            <p>
+                When you enable two factor authentication for a service or a website,
+                write down the secret that is displayed next to the QR code.
+                You can enter the secret on this page when you need a token.
+                Most codes are only valid for 30 seconds but most servers accept them a few minutes longer,
+                so ensure that your clock is set accurately.<br />
+                Most services / websites will give you a Base32 code, with 30 seconds refresh period and ask for 6 digits,
+                which means you can leave these three fields as-is.
+            </p>
+            <h3>Bookmarks</h3>
+            <p>
+                Your input is stored in the URL when you generate a token. This means you can set a bookmark to that specific URL to have the fields pre-filled. This allows you to store tokens in form of bookmarks.<br>
+                <a href='index.html#{"c":"AABBCCDD334455","m":1,"d":6,"p":"30"}' target="_blank"><B>Example Bookmark Link</B></a>
+            </p>
+
+            <h3>Securely using TOTP</h3>
+            <p>
+                Do not blindly enable Two factor authentication.
+                Be sure you can get access in case you lose your device.
+            </p>
+            <ul>
+                <li>
+                    <b>Backup Device :</b><br />
+                    If you can, register the same token on multiple devices.
+                    Don't rely on the backup/sync of the device.
+                </li><br>
+                <li>
+                    <b>Password Manager :</b><br />
+                    You can store the secret code and settings in a password manager.
+                    The idea of Two Factor authentication is that you need to posess a device with the secret on it.
+                    To not subvert this principle,
+                    use a different computer to store the password file.
+                </li><br>
+                <li>
+                    <b>"Backdoor" access :</b><br />
+                    When enabling Two Factor Authentication,
+                    be sure the website gives you a way to log in if you lose the device.
+                    You can often enable multiple Two factor logins at once.
+                    As long as you are able to proceed with one of them you should get in.
+                </li>
+            </ul>
+        </div>
+        <br>
+        <div class="form">
+            <label class="listLabel1">Code</label> : 
+            <input
+                type="text" id="token" placeholder="TOTP Secret"
+                size="30" class="form-control" required />
+        </div>
+        <div class="form">
+            <label class="listLabel1">Type</label> : 
+            <select id="enctype" class="form-control" required>
+                <option value="1">(Default) Base32 (a-z, 2-7)</option>
+                <option value="2">Hexadecimal (a-f, 0-9)</option>
+            </select>
+        </div>
+        <div class="form">
+            <label class="listLabel1">Digits</label> : 
+            <!--
+                TOTP only supports 6-8 digits.
+                Extending the range here does nothing.
+            -->
+            <input type="number" id='digits' min="6" max="8" value="6" required class="form-control" style="width:40px;" />
+        </div>
+        <div class="form">
+            <label class="listLabel1">Period</label> : 
+            <input
+                type="number" id="interval" placeholder="Interval" value='30'
+                class="form-control" style="width:40px;" required />
+        </div>
+        <div class="form">
+            <input type="button" id='getTokenSingle' class="btn btn-primary" value="Get Token" />
+        </div>
+        <div class="row form-group">
+            <div class="col-md-2">&nbsp;</div>
+            <div class="col-md-4">
+                <div id="codes" style="display:none">
+                    Tokens generated at : <span class="time"></span>, 
+                    refresh in <span class="counter"></span><br /><br />
+                    <table class="table">
+                        <tr>
+                            <td><code class="totp" id="totpN"></code></td>
+                            <td>Next Code</td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpC"></code></td>
+                            <td><b>Current Code</b></td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpP"></code></td>
+                            <td>Previous Code</td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpPP"></code></td>
+                            <td>2nd Previous Code</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <BR>
+        <h2 style="display:inline-block;"><u>OTPAuth Token Generator</u></h2>
+        &nbsp;&nbsp;[<a id="arrayHelpButton">Show Help</a>]
+        <div id="arrayHelpDiv" class="alert alert-info" style="display:none">
+            <p>
+                Most TOTP apps (like Google Authentication, Aegis, etc) have an option to export your TOTP database into a list of OTPAuth url. These urls will have at the very least your secret code. But most of the times they will also include issuer, username, algo, etc. You can use that OTPAuth file and load it to this page to fetch a token.
+            </p>
+            <h3>How To Use</h3>
+            <ul>
+                <li>
+                    <b>Load OTPAuth List From File :</b><br />
+                    Load your OTPAuth file into the page. It will be shown in textarea after you successfully loaded it. Optionally, you can just type any OTPAuth url into the textare directly.
+                </li><br>
+                <li>
+                    <b>Save List To File :</b><br />
+                    Save the text in textarea into a file.
+                </li><br>
+                <li>
+                    <b>Fetch Token From OTPAuth List :</b><br />
+                    If the text in textarea are valid OTPAuth urls, this page will process them and build a select option according to them. Select option will consist of <b>issuer - username</b>. If none are available, it will just say <b>Secret Code : YourSecretCode</b>. And then this page will fetch a token according to select option you have choosen.
+                </li>
+            </ul>
+        </div>
+        <br>
+        <div class="form">
+            <input type="button" id="txtload" name="txtload" class="btn btn-primary" value="Load OTPAuth List From File">&nbsp;&nbsp;
+            <input type="file" name="file" id="file" multiple hidden>
+            <input type="button" id="txtsave" name="txtsave" class="btn btn-primary" value="Save List To File">&nbsp;&nbsp;
+            <input type="button" id='getTokenArray' class="btn btn-primary" value="Fetch Token From OTPAuth List" />
+            <br><br>
+            <textarea id='otpauthSource' cols='100' rows='9'></textarea>
+            <br><br>
+            <select id="secretopt" class="form-control">
+            </select>
+            <BR><BR>
+            <div id='arrayResult'>
+            </div><BR>
+        </div>
+        <p>
+            <!--
+                Last modified: 2020-02-18 08:44:15 GMT
+                Current version: 94.75.163.223
+            -->
+            Copyright &copy; 2018 by <a rel="noreferrer noopener nofollow" target="_blank" href="https://cable.ayra.ch/contact">Kevin Gut</a>               <i>[<a rel="noreferrer noopener nofollow" target="_blank" href="https://cable.ayra.ch/">More Services</a>]</i>, Modified on 2023 by <a href="https://github.com/A99US" target="_blank">A99US</a> [<a href="https://github.com/A99US/totp-js" target="_blank">Source on GitHub</a>]
+        </p>
+    </div>
+<script>
+// =================================================================================
+// ============================ Conversion tools ===================================
+
+"use strict";
+
+var Convert = Convert || {};
+
+//Converts a base32 string into a hex string. The padding is optional
+Convert.base32toHex = function (data) {
+    //Basic argument validation
+    if (typeof(data) !== typeof("")) {
+        throw new Error("Argument to base32toHex() is not a string");
+    }
+    if (data.length === 0) {
+        throw new Error("Argument to base32toHex() is empty");
+    }
+    if (!data.match(/^[A-Z2-7]+=*$/i)) {
+        throw new Error("Argument to base32toHex() contains invalid characters");
+    }
+
+    //Return value
+    var ret = "";
+    //Maps base 32 characters to their value (the value is the array index)
+    var map = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".split('');
+    //Split data into groups of 8
+    var segments = (data.toUpperCase() + "========").match(/.{1,8}/g);
+    //Adding the "=" in the line above creates an unnecessary entry
+    segments.pop();
+    //Calculate padding length
+    var strip = segments[segments.length - 1].match(/=*$/)[0].length;
+    //Too many '=' at the end. Usually a padding error due to an incomplete base32 string
+    if (strip > 6) {
+        throw new Error("Invalid base32 data (too much padding)");
+    }
+    //Process base32 in sections of 8 characters
+    for (var i = 0; i < segments.length; i++) {
+        //Start with empty buffer each time
+        var buffer = 0;
+        var chars = segments[i].split("");
+        //Process characters individually
+        for (var j = 0; j < chars.length; j++) {
+            //This is the same as a left shift by 32 characters but without the 32 bit JS int limitation
+            buffer *= map.length;
+            //Map character to real value
+            var index = map.indexOf(chars[j]);
+            //Fix padding by ignoring it for now
+            if (chars[j] === '=') {
+                index = 0;
+            }
+            //Add real value
+            buffer += index;
+        }
+        //Pad hex string to 10 characters (5 bytes)
+        var hex = ("0000000000" + buffer.toString(16)).substr(-10);
+        ret += hex;
+    }
+    //Remove bytes according to the padding
+    switch (strip) {
+    case 6:
+        return ret.substr(0, ret.length - 8);
+    case 4:
+        return ret.substr(0, ret.length - 6);
+    case 3:
+        return ret.substr(0, ret.length - 4);
+    case 1:
+        return ret.substr(0, ret.length - 2);
+    default:
+        return ret;
+    }
+};
+//Converts a hex string into an array with numerical values
+Convert.hexToArray = function (hex) {
+    return hex.match(/[\dA-Fa-f]{2}/g).map(function (v) {
+        return parseInt(v, 16);
+    });
+};
+
+//Converts an array with bytes into a hex string
+Convert.arrayToHex = function (array) {
+    var hex = "";
+
+    if (array instanceof ArrayBuffer) {
+        return Convert.arrayToHex(new Uint8Array(array));
+    }
+    for (var i = 0; i < array.length; i++) {
+        hex += ("0" + array[i].toString(16)).substr(-2);
+    }
+    return hex;
+};
+
+//Converts an unsigned 32 bit integer into a hexadecimal string. Padding is added as needed
+Convert.int32toHex = function (i) {
+    return ("00000000" + Math.floor(Math.abs(i)).toString(16)).substr(-8);
+};
+
+// =================================================================================
+// =============================== TOTP functions ==================================
+
+//TOTP implementation
+var TOTP = {
+    //Calculates the TOTP counter for a given point in time
+    //time(number):      Time value (in seconds) to use. Usually the current time (Date.now()/1000)
+    //interval(number):  Interval in seconds at which the key changes (usually 30).
+    getOtpCounter: function (time, interval) {
+        return (time / interval) | 0;
+    },
+
+    //Calculates the current counter for TOTP
+    //interval(number): Interval in seconds at which the key changes (usually 30).
+    getCurrentCounter: function (interval=30) {
+        return TOTP.getOtpCounter(Date.now() / 1000 | 0, interval);
+    },
+
+    //Calculates the countdown until the new time period
+    //interval(number): Interval in seconds at which the key changes (usually 30).
+    getCountdown: function (interval=30) {
+        return interval - ( (Date.now() / 1000 | 0) % interval )
+    },
+
+    //Calculates a HOTP value
+    //keyHex(string):      Secret key as hex string
+    //size(number):        Number of digits (usually 6)
+    //counterInt(number):  Counter for the OTP. Use TOTP.getOtpCounter() to use this as TOTP instead of HOTP
+    //interval(number):    If not false, will automatically add TOTP.getOtpCounter() to counterInt
+    //debug(boolean):      Show / hide console.debug
+    otp: async function (keyHex, size=6, counterInt=false, interval=false, debug=false) {
+        var isInt = function (x) {
+            return x === x | 0;
+        };
+        if (typeof(keyHex) !== typeof("")) {
+            throw new Error("Invalid hex key");
+        }
+        if(counterInt === false){
+            counterInt = TOTP.getCurrentCounter()
+        }
+        else if (typeof(counterInt) !== typeof(0) || !isInt(counterInt)) {
+            throw new Error("Invalid counter value");
+        }
+        if (typeof(size) !== typeof(0) || (size < 6 || size > 10 || !isInt(size))) {
+            throw new Error("Invalid size value (default is 6)");
+        }
+        if (interval!==false) {
+            if(typeof(interval) !== typeof(0) || !isInt(interval)){
+                throw new Error("Invalid interval value");
+            }
+            counterInt += TOTP.getCurrentCounter(interval)
+        }
+        // Original codes have been converted into an async function
+        // So can directly return a value instead
+        //Calculate hmac from key and counter
+        let mac = await TOTP.hmac(keyHex, "00000000" + Convert.int32toHex(counterInt), debug);
+        //The last 4 bits determine the offset of the counter
+        let offset = parseInt(mac.substr(-1), 16);
+        //Extract counter as a 32 bit number anddiscard possible sign bit
+        let code = parseInt(mac.substr(offset * 2, 8), 16) & 0x7FFFFFFF;
+        //Trim and pad as needed
+        code = ("0000000000" + (code % Math.pow(10, size))).substr(-size)
+        if(debug) console.debug("Token", code)
+        return code
+    },
+    //Calculates a SHA-1 hmac
+    //keyHex(string):   Key for hmac as hex string
+    //valueHex(string): Value to hash as hex string
+    hmac: async function (keyHex, valueHex, debug) {
+        var algo = {
+            name: "HMAC",
+            //SHA-1 is the standard for TOTP and HOTP
+            hash: "SHA-1"
+        };
+        var modes = ["sign", "verify"];
+        var key = Uint8Array.from(Convert.hexToArray(keyHex));
+        var value = Uint8Array.from(Convert.hexToArray(valueHex));
+        // Original codes have been converted into an async function
+        // So can directly return a value instead
+        let result = await crypto.subtle.importKey("raw", key, algo, false, modes)
+        if(debug) console.debug("Key imported", keyHex);
+        result = await crypto.subtle.sign(algo, result, value)
+        result = Convert.arrayToHex(result)
+        if(debug) console.debug("HMAC calculated", value, result)
+        return result
+    },
+    //Checks if this browser is compatible with the TOTP implementation
+    isCompatible: function () {
+        var f = function (x) {
+            return typeof(x) === typeof(f);
+        };
+        if (typeof(crypto) === typeof(TOTP) && typeof(Uint8Array) === typeof(f)) {
+            return !!(crypto.subtle && f(crypto.subtle.importKey) && f(crypto.subtle.sign) && f(crypto.subtle.digest));
+        }
+        return false;
+    }
+}
+//Make sure the conversion script is loaded first
+if (typeof(Convert) !== typeof(TOTP)) {
+    TOTP = null;
+    alert("Data conversion module not loaded");
+    throw new Error("Data conversion module not loaded");
+}
+
+// =================================================================================
+// ========================= Site specific JavaScript ==============================
+
+"use strict";
+
+window.addEventListener("load", function () {
+    //Because typing costs time and time is money (and money is life)
+    var q = document.querySelector.bind(document);
+    var qa = document.querySelectorAll.bind(document);
+
+    //Button to generate code
+    var btnGetTokenSingle = q("#getTokenSingle"); // "[type=button]"
+    var btnGetTokenArray = q("#getTokenArray");
+    //TOTP Secret
+    var formSecret = q("#token");
+    //Number of TOTP digits
+    var formDigits = q("#digits"); // [type=number]
+    //Secret Code type
+    var formMode = q("#enctype"); // select
+    //Period / Interval
+    var formPeriod = q("#interval");
+    //OTPAuth textarea
+    var formOtpauthSource = q("#otpauthSource")
+    //Select option from OTPAuth textarea
+    var secretopt = q("#secretopt")
+
+    //Default value OTPAuth textarea
+    formOtpauthSource.innerHTML =
+    'otpauth://totp?secret=CCDDBBAA333666\n'+
+    'otpauth://totp/Example.Com:XMPLUser?secret=ABBCCDD2345&issuer=Example.Com\n'+
+    `otpauth://totp/GitServer:Dev123?secret=CCBBDDAA5432&issuer=GitServer&digit=7&period=5`
+
+    //List of valid TOTP Secret code patterns
+    var pattern = {
+        //Base32 Code
+        "1": {
+            regex: "[A-Za-z2-7]+=*",
+            title: "Secret should be Base32 encoded (using only a-z and 2-7)"
+        },
+        //Raw Hex Code
+        "2": {
+            regex: "([A-Fa-f0-9]{2})*",
+            title: "Hexadecimal only (0-9 and a-f, even number of characters)"
+        }
+    };
+
+    //Math.range
+    var range = function (min, x, max) {
+        return Math.max(Math.min(x | 0, max), min) | 0;
+    };
+
+    //Validate a form element
+    var validate = function (x) {
+        return !x.reportValidity || x.reportValidity();
+    };
+
+    //Updates the URL to the current values
+    var setHash = function (code, mode, digits, period) {
+        location.hash = "#" + JSON.stringify({
+                c: code,
+                m: mode,
+                d: digits,
+                p: period
+            });
+    };
+
+    //Fills in values from the URL
+    var getHash = function () {
+        if (location.hash.length > 1) {
+            try {
+                var data = JSON.parse(decodeURIComponent(location.hash.substr(1)));
+                formSecret.value = data.c;
+                formPeriod.value = data.p;
+                if (pattern[data.m]) {
+                    formMode.value = data.m;
+                }
+                formDigits.value = range(6, data.d | 0, 8);
+            } catch (e) {
+                console.warn(e, "Invalid JSON in URL:", location.hash.substr(1));
+                return false;
+            }
+            setPattern();
+            return true;
+        }
+        setPattern();
+        return false;
+    };
+
+    //Checks and processes the form
+    var checkForm = function () {
+        //IE11 and older has no reportValidity support
+        if (validate(formSecret) && validate(formDigits) && validate(formMode)) {
+            clearTimeout(timer.single);
+            var digits = range(6, +formDigits.value, 8);
+            let period = formPeriod.value;
+            var secret = formSecret.value;
+            if (formMode.value === "1") {
+                try {
+                    secret = Convert.base32toHex(secret);
+                } catch (e) {
+                    alert("Invalid Base32 characters");
+                    return;
+                }
+
+                // Set URL hash
+                setHash(formSecret.value, +formMode.value, digits, period);
+                // Show tokens div
+                q("#codes").style.display = "block";
+
+                checkToken({
+                    secret: secret,
+                    digits: digits,
+                    period: parseInt(period),
+                    type: "single",
+                    init: true,
+                    target: {
+                        time: ".time",
+                        token: [
+                            ["#totpPP",-2],  //2nd Prev
+                            ["#totpP",-1],   //Prev
+                            ["#totpC",0],    //Current
+                            ["#totpN",1]     //Next
+                        ],
+                        countdown: [".counter","s"]
+                    }
+                });
+            }
+        }
+    };
+
+    //Timer vars
+    var timer = { single: null, array: null };
+
+    //Get the token
+    var checkToken = async function (st) {
+        try {
+            if(st.debug) console.debug("Getting TOTP for", st.secret);
+            // Set or Reset Token on function init or countdown reset
+            if(st.init || st.countdown==st.period){
+                let counter = TOTP.getCurrentCounter(st.period);
+                st.countdown = TOTP.getCountdown(st.period)
+                //console.log(counter)
+                let targetID = 0
+                q(st.target.time).textContent = (new Date()).toLocaleTimeString()
+                while(st.target.token[targetID]){
+                    q(st.target.token[targetID][0]).textContent =
+                        await TOTP.otp(
+                            st.secret, st.digits,
+                            counter + (st.target.token[targetID][1]) //, false
+                            //st.target.token[targetID][1], st.period
+                            //, true
+                        )
+                    targetID += 1;
+                }
+                st.init = false;
+            }
+
+            //Countdown
+            q(st.target.countdown[0]).textContent = st.countdown + (st.target.countdown[1] || "")
+
+            st.countdown = st.countdown==1 ? st.period : st.countdown-1
+
+            // Timer to refresh TOTP
+            timer[st.type] = setTimeout(async () => {
+                await checkToken(st);
+            }, 1000);
+
+        } catch (e) {
+            q("#codes").style.display = "none";
+            console.error(e);
+            alert(
+                "Problem decoding Secret.\n"+
+                "Verify your secret and type are correct.\n"+
+                "Message from decoder: " + e.message
+            );
+        };
+    };
+
+    var selectArray = [];
+
+    //Fetch OTPAuth list in textarea
+    var FetchSelectArray = async function(){
+        clearTimeout(timer.array);
+        selectArray = []
+        secretopt.innerHTML = ""
+        q("#arrayResult").innerHTML = ""
+        let secretArray = formOtpauthSource.value.split("\n"),
+            arrayID = 0, item,
+            parser, param, pathname, type, name,
+            username, issuer, algo, digits, period, secret
+        while(secretArray[arrayID]){
+            item = secretArray[arrayID]
+            parser = new URL(item);
+            param = str => parser.searchParams.get(str);
+            pathname = parser.pathname.split("/");
+            type = pathname[2] || null
+            name = pathname[3] ? decodeURIComponent(pathname[3]) : null
+            // console.log(name)
+            if(parser.protocol=="otpauth:" && type=="totp" && param("secret")){
+                username = name && name.split(":").length > 1 ?
+                    name.split(":").slice(-1)[0] : null
+                // Label issuer and param issuer should be the same
+                // Param issuer is priority, label issuer for older version
+                // Label and issuer might be URL-Encoded, Decode first
+                issuer = param("issuer") ? decodeURIComponent(param("issuer")) :
+                    name && username ?
+                    name.substr(0, name.length - (username.length+1)) :
+                    name ? name : null
+                algo = param("algo") || param("algorithm") || "SHA1"
+                digits = range(6, +(parseInt(param("digits") || param("digit"))), 8) || 6
+                period = parseInt(param("period")) || parseInt(param("interval")) || 30
+                // Assuming all secret codes are in Base32
+                try {
+                    secret = Convert.base32toHex(param("secret"));
+                } catch (e) {
+                    alert(
+                        "Invalid Base32 characters\n"+
+                        "code : "+ param("secret") +"\n"+
+                        "Line : "+ (arrayID+1)
+                    );
+                    return;
+                }
+                selectArray.push({
+                    issuer: issuer,
+                    username: username,
+                    secret: secret,
+                    secretori: param("secret"),
+                    digits: digits,
+                    period: parseInt(period),
+                    algo: algo,
+                    type: "array",
+                    init: true,
+                    target: {
+                        time: ".timeArray",
+                        token: [
+                            [".tokenArrayC",0],
+                            [".tokenArrayP",-1],
+                            [".tokenArrayPP",-2],
+                            [".tokenArrayN",1]
+                        ],
+                        countdown: [".counterArray","s"]
+                    }
+                })
+            }
+            arrayID += 1
+        }
+        //console.log(selectArray)
+        arrayID = 0
+        // Add OTPAuth URL to select option
+        while(selectArray[arrayID]){
+            item = selectArray[arrayID]
+            //console.log(item.secret)
+            addselectoption(
+                secretopt,
+                arrayID,
+                (!item.issuer || item.issuer=='') && (!item.username || item.username=='') ?
+                "Secret Code : "+ item.secretori :
+                (
+                    (item.issuer && item.issuer!='' ? item.issuer : "No Issuer") +" - "+
+                    (item.username && item.username!='' ? item.username : "No Username")
+                )
+            )
+            arrayID += 1
+        }
+        // Select option already built, Get the token
+        checkArray()
+    };
+
+    var checkArray = async function(){
+        if(secretopt.options.length<1) return;
+        clearTimeout(timer.array);
+        let item = selectArray[secretopt.value]
+        item.init = true
+        let label = (str1,str2='') => "<label class='listLabel2'>"+ str1 +"</label>"+ str2;
+        let tr = (str1,str2) => "<tr><td>"+ str1 +"&nbsp;</td><td>&nbsp;"+ str2 +"</td></tr>"
+        let formclass = str => "<div class='form'>"+ str +"</div>"
+        q("#arrayResult").innerHTML =
+            formclass(label("Issuer"," : ") + (
+                item.issuer && item.issuer!='' ? item.issuer : "<i>No Issuer</i>"
+            ) ) +
+            formclass(label("Username"," : ") + (
+                item.username && item.username!='' ? item.username : "<i>No Username</i>"
+            ) ) +
+            formclass(label("Setting"," : ") +
+                item.digits +" digits, "+
+                item.period +"s period, "+
+                item.algo +" algorithm"
+            )+
+            formclass(label("Generated at"," : ") + "<span class='timeArray'></span>"+
+            ", refresh in <span class='counterArray'></span>") +"<BR>"+
+            "<table class='table'>"+
+                tr("<code class='tokenArrayN totp'></code>","Next Token")+
+                tr("<code class='tokenArrayC totp'></code>","<b>Current Token</b>")+
+                tr("<code class='tokenArrayP totp'></code>","Previous Token")+
+                tr("<code class='tokenArrayPP totp'></code>","2nd Previous Token")+
+            "</table>"
+        await checkToken(item);
+    };
+
+    var addselectoption = function(select, value, text=""){
+        let option = document.createElement("option")
+        option.value = value
+        option.text = text
+        // let select = document.getElementById("selectid")
+        select.appendChild(option)
+        /*
+        TO REMOVE SINGLE
+        select.options.remove(0), or select.remove(0)
+        TO REMOVE ALL
+        select.innerHTML = ""
+        */
+    };
+
+    if (TOTP.isCompatible()) {
+        //Generate and display secret code
+        btnGetTokenSingle.addEventListener("click", checkForm);
+        btnGetTokenArray.addEventListener("click", FetchSelectArray);
+        secretopt.addEventListener("change", checkArray);
+    } else {
+        //Incompatible browser
+        alert("Your browser is outdated and lacks missing components for this implementation. Please update your browser");
+        q(".container").innerHTML = "<h1 class=\"alert alert-danger\">" +
+            "Outdated browser, try to live in the year" + (new Date()).getFullYear() +
+            "</h1>";
+    }
+    //Set the pattern for the secret code textbox
+    var setPattern = function () {
+        if (pattern[formMode.value]) {
+            formSecret.setAttribute("pattern", pattern[formMode.value].regex);
+            formSecret.setAttribute("title", pattern[formMode.value].title);
+        } else {
+            alert("attempted to select invalid Pattern. The website will reset now");
+            location.reload(true);
+        }
+    };
+    //Hook up setPattern event
+    formMode.addEventListener("change", setPattern);
+
+    //Show warning if not running on file system
+    var isOnline = (location.protocol.indexOf("file:") !== 0);
+    var eleOnline = qa(".online-only");
+    var eleOffline = qa(".offline-only");
+    for (var i = 0; i < eleOffline.length; i++) {
+        eleOffline[i].style.display = isOnline ? "none" : "block";
+    }
+    for (var i = 0; i < eleOnline.length; i++) {
+        eleOnline[i].style.display = isOnline ? "block" : "none";
+    }
+
+    //Set initial data and pattern
+    if (getHash()) {
+        checkForm();
+    }
+
+    //Array.prototype.slice.call(qa("input,select"), 0)
+    Array.prototype.slice.call(qa("#token,#digits,#enctype,#interval"), 0)
+    .forEach(function (v) {
+        v.addEventListener("keydown", function (e) {
+            if (e.keyCode === 13 || e.which === 13) {
+                e.preventDefault();
+                e.stopPropagation();
+                checkForm();
+            }
+        });
+    });
+
+    //Link that opens the help box at the bottom and hides itself
+    q("#singleHelpButton").addEventListener("click", function (e) {
+        if(q("#singleHelpDiv").style.display=="block"){
+            q("#singleHelpDiv").style.display = "none"
+            q("#singleHelpButton").text = "Show Help"
+        }else{
+            q("#singleHelpDiv").style.display = "block"
+            q("#singleHelpButton").text = "Hide Help"
+        }
+    });
+    q("#arrayHelpButton").addEventListener("click", function (e) {
+        if(q("#arrayHelpDiv").style.display=="block"){
+            q("#arrayHelpDiv").style.display = "none"
+            q("#arrayHelpButton").text = "Show Help"
+        }else{
+            q("#arrayHelpDiv").style.display = "block"
+            q("#arrayHelpButton").text = "Hide Help"
+        }
+    });
+    q("#hideWarningButton").addEventListener("click", function (e) {
+        q("#warningDiv").style.display = "none"
+    });
+
+    //Load otpauth file
+    q("#txtload").addEventListener("click", function(e){
+      q("#file").click();
+    });
+    q("#file").addEventListener("change", async function(e){
+      formOtpauthSource.value = ((await dataload(this)).join("\n\n")); // .change()
+      q("#file").value = "";
+    });
+    //Save otpauth text
+    q("#txtsave").addEventListener("click", function(e){
+      download_blob(formOtpauthSource.value, "OTPAuth.txt");
+    });
+
+
+     /**
+      * Download url
+      * @param {string} url - Url to save
+      * @param {string} filename - Default filename and extension when saving
+      * @example
+      * download_url("https://www.example.com") // Will be saved as "download.txt"
+      * download_url("https://www.example.com","data-2023.txt")
+      */
+
+     function download_url(url = "", filename = "download.txt"){
+       let element = document.createElement('a');
+       element.href = url;
+       element.download = filename;
+       element.style.display = 'none';
+       document.body.appendChild(element);
+       element.click();
+       document.body.removeChild(element);
+     }
+
+     /**
+      * Save blob / data string to file
+      * @param {object|string} blob - Blob / string to save
+      * @param {string} filename - Default filename and extension when saving
+      * @example
+      * let dataBlob = new Blob([data], { type: 'text/plain' });
+      * download_blob(dataBlob) // Will be saved as "download.txt"
+      * download_blob(dataBlob,"data-2023.txt")
+      * download_blob("String to be saved","data-2023.txt")
+      */
+
+     function download_blob(blob, filename = "download.txt"){
+       if(typeof blob === 'string')
+         blob = new Blob( [blob], { type: 'text/plain' } );
+       blob = window.URL.createObjectURL(blob);
+       let element = document.createElement('a');
+       element.href = blob;
+       element.download = filename;
+       element.style.display = 'none';
+       document.body.appendChild(element);
+       element.click();
+       document.body.removeChild(element);
+       window.URL.revokeObjectURL(blob);
+       window.URL.revokeObjectURL(element.href);
+     }
+     
+     // Backward Compatibility
+     function datasave(data = "", filename = "download.txt"){
+       //download_url('data:text/plain;charset=utf-8,'+ encodeURIComponent(data), filename);
+       download_blob(data, filename);
+     }
+     
+     /**
+      * Load data from file
+      *
+      * From : {@link https://thecompetentdev.com/weeklyjstips/tips/65_promisify_filereader/}
+      * @param {object} fileOpt - Input files
+      * @return {object}
+      * @example
+      * // Single file
+      * let data = (await dataload(this))[0]
+      * // Multiple files
+      * let data = (await dataload(this)).join("\n")
+      */
+
+     async function dataload(fileOpt){
+       const read = (file) => new Promise((resolve, reject) => {
+         const reader = new FileReader();
+         reader.onload = (event) => resolve(event.target.result);
+         reader.onerror = reject;
+         reader.readAsText(file);
+       });
+       let fileArray = fileOpt.files,
+           file, data = [], arrlen;
+       arrlen = Object.keys(fileArray).length;
+       for(let i=0; i<arrlen; i++){
+         file = fileArray[i];
+         data.push(await read(file));
+       }
+       return data;
+     }
+});
+
+</script>
+</body>
+</html>

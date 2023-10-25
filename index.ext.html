@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google-site-verification" content="QxsDtoeTgZKEjzA7NKUM3zO_bL4Px3zs4n8-7U8oNh0" />
+    <title>Pure JavaScript TOTP Token Generator</title>
+<!-- Site Specific css -->
+<style type="text/css">
+body{
+    font-family:Arial Unicode,Arial,Sans-Serif;
+}
+a{
+    color:#00F;
+}
+code{
+    color:#090;
+    font-weight:bold;
+    font-family:Consolas,Lucida Console,Monospace;
+}
+.form{
+    padding:0.5em;
+}
+.control-label{ /*.form label{*/
+    display:inline-block;
+    width:20%;
+}
+.container{
+    max-width:800px;
+    margin-left:auto;
+    margin-right:auto;
+}
+#singleHelpContainer{
+  display : inline-block;
+}
+.about{
+    display:block;
+    text-align:right;
+    color:#888;
+    font-size:8pt;
+}
+.about:hover{
+    color:#000;
+}.totp{
+    font-size:20pt;
+}
+.online-only,.offline-only{
+    display:none;
+}
+.listLabel1{
+  display : inline-block;
+  width : 55px;
+}
+.listLabel2{
+  display : inline-block;
+  width : 100px;
+}
+.listLabel3{
+  display : inline-block;
+  width : 110px;
+}
+.alert{
+    border:1px solid transparent;
+    border-radius:1em;
+    padding:1em;
+}
+.alert-danger{
+    background-color:#FDD;
+}
+.alert-info{
+    background-color:#DDF;
+}
+.btn{
+    padding:0.5em;
+}
+.btn-primary{
+    background-color:#44F;
+    border:2px solid #00F;
+    color:#FFF;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pure JavaScript TOTP Token Generator</h1>
+            <p>
+                This website allows you to generate a TOTP Token from either 
+                a single TOTP secret code or a list of OTPAuth url. 
+                This page has no external dependency and can run on its own. 
+                It runs completely in your browser and can be used offline.
+            </p>
+            <div id="warningDiv" class="alert alert-danger online-only">
+                <b><u>WARNING !!!</u></b>
+                &nbsp;&nbsp;[<a id="hideWarningButton">Hide Warning</a>]
+                <br><br>
+                This site is currently online.<br>
+                Although we don't collect any code / data from this page, we recommend that you run it offline if you are going to use it for real codes.<br>
+                You can just directly save this page or download this page from the links below and use it offline.
+                If the link does not prompt for a download,
+                you can right click it and then save the link target as <code>totp.html</code>
+                (or any other file name).
+                <br><br>
+                <label class='listLabel3'>
+                    <a href="./index.html" download="totp.html">index.html</a>
+                </label> : uncompressed-js version (38KB)<br>
+                <label class='listLabel3'>
+                    <a href="./index.min.html" download="totp.html">index.min.html</a>
+                </label> : compressed-js version (22KB)<br>
+                <label class='listLabel3'>
+                    <a href="https://cable.ayra.ch/totp/" download="totp.html">totp.html</a>
+                </label> : original author's code, without OTPAuth url fetcher (18KB)
+            </div>
+        <h2 style="display:inline-block;"><u>Single Token Generator</u></h2>
+        &nbsp;&nbsp;[<a id="singleHelpButton">Show Help</a>]
+        <div id="singleHelpDiv" class="alert alert-info" style="display:none">
+            <h3>How To Use</h3>
+            <p>
+                When you enable two factor authentication for a service or a website,
+                write down the secret that is displayed next to the QR code.
+                You can enter the secret on this page when you need a token.
+                Most codes are only valid for 30 seconds but most servers accept them a few minutes longer,
+                so ensure that your clock is set accurately.<br />
+                Most services / websites will give you a Base32 code, with 30 seconds refresh period and ask for 6 digits,
+                which means you can leave these three fields as-is.
+            </p>
+            <h3>Bookmarks</h3>
+            <p>
+                Your input is stored in the URL when you generate a token. This means you can set a bookmark to that specific URL to have the fields pre-filled. This allows you to store tokens in form of bookmarks.<br>
+                <a href='index.html#{"c":"AABBCCDD334455","m":1,"d":6,"p":"30"}' target="_blank"><B>Example Bookmark Link</B></a>
+            </p>
+
+            <h3>Securely using TOTP</h3>
+            <p>
+                Do not blindly enable Two factor authentication.
+                Be sure you can get access in case you lose your device.
+            </p>
+            <ul>
+                <li>
+                    <b>Backup Device :</b><br />
+                    If you can, register the same token on multiple devices.
+                    Don't rely on the backup/sync of the device.
+                </li><br>
+                <li>
+                    <b>Password Manager :</b><br />
+                    You can store the secret code and settings in a password manager.
+                    The idea of Two Factor authentication is that you need to posess a device with the secret on it.
+                    To not subvert this principle,
+                    use a different computer to store the password file.
+                </li><br>
+                <li>
+                    <b>"Backdoor" access :</b><br />
+                    When enabling Two Factor Authentication,
+                    be sure the website gives you a way to log in if you lose the device.
+                    You can often enable multiple Two factor logins at once.
+                    As long as you are able to proceed with one of them you should get in.
+                </li>
+            </ul>
+        </div>
+        <br>
+        <div class="form">
+            <label class="listLabel1">Code</label> : 
+            <input
+                type="text" id="token" placeholder="TOTP Secret"
+                size="30" class="form-control" required />
+        </div>
+        <div class="form">
+            <label class="listLabel1">Type</label> : 
+            <select id="enctype" class="form-control" required>
+                <option value="1">(Default) Base32 (a-z, 2-7)</option>
+                <option value="2">Hexadecimal (a-f, 0-9)</option>
+            </select>
+        </div>
+        <div class="form">
+            <label class="listLabel1">Digits</label> : 
+            <!--
+                TOTP only supports 6-8 digits.
+                Extending the range here does nothing.
+            -->
+            <input type="number" id='digits' min="6" max="8" value="6" required class="form-control" style="width:40px;" />
+        </div>
+        <div class="form">
+            <label class="listLabel1">Period</label> : 
+            <input
+                type="number" id="interval" placeholder="Interval" value='30'
+                class="form-control" style="width:40px;" required />
+        </div>
+        <div class="form">
+            <input type="button" id='getTokenSingle' class="btn btn-primary" value="Get Token" />
+        </div>
+        <div class="row form-group">
+            <div class="col-md-2">&nbsp;</div>
+            <div class="col-md-4">
+                <div id="codes" style="display:none">
+                    Tokens generated at : <span class="time"></span>, 
+                    refresh in <span class="counter"></span><br /><br />
+                    <table class="table">
+                        <tr>
+                            <td><code class="totp" id="totpN"></code></td>
+                            <td>Next Code</td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpC"></code></td>
+                            <td><b>Current Code</b></td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpP"></code></td>
+                            <td>Previous Code</td>
+                        </tr>
+                        <tr>
+                            <td><code class="totp" id="totpPP"></code></td>
+                            <td>2nd Previous Code</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <BR>
+        <h2 style="display:inline-block;"><u>OTPAuth Token Generator</u></h2>
+        &nbsp;&nbsp;[<a id="arrayHelpButton">Show Help</a>]
+        <div id="arrayHelpDiv" class="alert alert-info" style="display:none">
+            <p>
+                Most TOTP apps (like Google Authentication, Aegis, etc) have an option to export your TOTP database into a list of OTPAuth url. These urls will have at the very least your secret code. But most of the times they will also include issuer, username, algo, etc. You can use that OTPAuth file and load it to this page to fetch a token.
+            </p>
+            <h3>How To Use</h3>
+            <ul>
+                <li>
+                    <b>Load OTPAuth List From File :</b><br />
+                    Load your OTPAuth file into the page. It will be shown in textarea after you successfully loaded it. Optionally, you can just type any OTPAuth url into the textare directly.
+                </li><br>
+                <li>
+                    <b>Save List To File :</b><br />
+                    Save the text in textarea into a file.
+                </li><br>
+                <li>
+                    <b>Fetch Token From OTPAuth List :</b><br />
+                    If the text in textarea are valid OTPAuth urls, this page will process them and build a select option according to them. Select option will consist of <b>issuer - username</b>. If none are available, it will just say <b>Secret Code : YourSecretCode</b>. And then this page will fetch a token according to select option you have choosen.
+                </li>
+            </ul>
+        </div>
+        <br>
+        <div class="form">
+            <input type="button" id="txtload" name="txtload" class="btn btn-primary" value="Load OTPAuth List From File">&nbsp;&nbsp;
+            <input type="file" name="file" id="file" multiple hidden>
+            <input type="button" id="txtsave" name="txtsave" class="btn btn-primary" value="Save List To File">&nbsp;&nbsp;
+            <input type="button" id='getTokenArray' class="btn btn-primary" value="Fetch Token From OTPAuth List" />
+            <br><br>
+            <textarea id='otpauthSource' cols='100' rows='9'></textarea>
+            <br><br>
+            <select id="secretopt" class="form-control">
+            </select>
+            <BR><BR>
+            <div id='arrayResult'>
+            </div><BR>
+        </div>
+        <p>
+            <!--
+                Last modified: 2020-02-18 08:44:15 GMT
+                Current version: 94.75.163.223
+            -->
+            Copyright &copy; 2018 by <a rel="noreferrer noopener nofollow" target="_blank" href="https://cable.ayra.ch/contact">Kevin Gut</a>               <i>[<a rel="noreferrer noopener nofollow" target="_blank" href="https://cable.ayra.ch/">More Services</a>]</i>, Modified on 2023 by <a href="https://github.com/A99US" target="_blank">A99US</a> [<a href="https://github.com/A99US/totp-js" target="_blank">Source on GitHub</a>]
+        </p>
+    </div>
+    <!--
+    <script type="text/javascript" src="totp.min.js"></script>
+    <script type="text/javascript" src="index.min.js"></script>
+    -->
+    <script type="text/javascript" src="totp.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+</body>
+</html>
