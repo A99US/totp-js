@@ -8,7 +8,8 @@ This javascript library allows you to generate a TOTP Token from a TOTP secret c
  - **[How To Use](#how-to-use)**
  - **[Changes / Breaking Changes](#changes--breaking-changes)**
  - **[To-Do List](#to-do-list)**
- - **[Credits](#credits)**
+ - **[Credit](#credit)**
+ - **[License](#license)**
 
 ## Demo
 
@@ -137,6 +138,10 @@ Changes / breaking changes from the original codes :
 
 - Function to process OTPAuth url and return array object of token, issuer, username, countdown, etc
 
-## Credit And License
+## Credit
 
-Credit and License belong to the original author, [Kevin Gut](https://cable.ayra.ch/contact)
+Credit goes to the original author, [Kevin Gut](https://cable.ayra.ch/contact)
+
+## License
+
+[MIT](https://github.com/A99US/totp-js/blob/main/LICENSE)

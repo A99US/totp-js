@@ -1,3 +1,9 @@
+/*
+MIT License
+Copyright (c) 2018, Kevin Gut (https://cable.ayra.ch/contact)
+This is a modified version by A99US (https://github.com/A99US/totp-js)
+*/
+
 // =================================================================================
 // ========================= Site specific JavaScript ==============================
 
