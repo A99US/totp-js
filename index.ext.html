@@ -104,10 +104,10 @@ code{
                 <br><br>
                 <label class='listLabel3'>
                     <a href="./index.html" download="totp.html">index.html</a>
-                </label> : uncompressed-js version (38KB)<br>
+                </label> : uncompressed-js version (40KB)<br>
                 <label class='listLabel3'>
                     <a href="./index.min.html" download="totp.html">index.min.html</a>
-                </label> : compressed-js version (22KB)<br>
+                </label> : compressed-js version (24KB)<br>
                 <label class='listLabel3'>
                     <a href="https://cable.ayra.ch/totp/" download="totp.html">totp.html</a>
                 </label> : original author's code, without OTPAuth url fetcher (18KB)
@@ -238,6 +238,32 @@ code{
                     If the text in textarea are valid OTPAuth urls, this page will process them and build a select option according to them. Select option will consist of <b>issuer - username</b>. If none are available, it will just say <b>Secret Code : YourSecretCode</b>. And then this page will fetch a token according to select option you have choosen.
                 </li>
             </ul>
+            <h3>Custom OTPAuth Source</h3>
+            <p>
+                You can change the default value of OTPAuth url in the textarea. It is very useful if your saving this page on your computer, your smartphone or your own website. Everytime you open the page, it will load your desired data. There are 2 ways to set the value :
+            </p>
+            <ul>
+                <li>
+                    <b>Add Variable Directly Into The Page</b><br><br>
+                    Add a javascript code to set a value for variable <b>otpauthsource</b><br>
+                    <code>
+                        &lt;script&gt;<br>
+                        var otpauthsource = `otpauth://totp/GitServer:Dev123?secret=CCBBDDAA5432&issuer=GitServer&digit=7&period=5`;<br>
+                        &lt;/script&gt;
+                    </code>
+                </li><br>
+                <li>
+                    <b>Add JS File Containing The Variable</b><br><br>
+                    Create a js file that contain the variable <b>otpauthsource</b>. In this example, the file is named <b>otpauthfile.js</b><br>
+                    <code>
+                        &lt;script type="text/javascript" src="otpauthfile.js">&lt;/script>
+                    </code><br><br>
+                    Then in the file, you declare the variable<br>
+                    <code>
+                        var otpauthsource = `otpauth://totp/GitServer:Dev123?secret=CCBBDDAA5432&issuer=GitServer&digit=7&period=5`;
+                    </code>
+                </li>
+            </ul>
         </div>
         <br>
         <div class="form">
@@ -266,6 +292,10 @@ code{
     MIT License
     Copyright (c) 2018, Kevin Gut (https://cable.ayra.ch/contact)
     This is a modified version by A99US (https://github.com/A99US/totp-js)
+    -->
+    <!--
+    Custom OTPAuth Source File
+    <script type="text/javascript" src="otpauthfile.js"></script>
     -->
     <!--
     <script type="text/javascript" src="totp.min.js"></script>

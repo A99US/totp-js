@@ -31,7 +31,8 @@ window.addEventListener("load", function () {
     var secretopt = q("#secretopt")
 
     //Default value OTPAuth textarea
-    formOtpauthSource.innerHTML =
+    formOtpauthSource.innerHTML = typeof otpauthsource !== "undefined" ?
+    otpauthsource :
     'otpauth://totp?secret=CCDDBBAA333666\n'+
     'otpauth://totp/Example.Com:XMPLUser?secret=ABBCCDD2345&issuer=Example.Com\n'+
     `otpauth://totp/GitServer:Dev123?secret=CCBBDDAA5432&issuer=GitServer&digit=7&period=5`
