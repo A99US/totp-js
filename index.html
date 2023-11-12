@@ -763,6 +763,10 @@ window.addEventListener("load", function () {
             )
             arrayID += 1
         }
+        // Max size of OTPAuth select-option fetcher
+        let optMax = 6
+        // Set the size of OTPAuth select-option fetcher
+        secretopt.size = selectArray.length<=optMax ? selectArray.length : optMax
         // Select option already built, Get the token
         checkArray()
     };
@@ -802,6 +806,7 @@ window.addEventListener("load", function () {
         let option = document.createElement("option")
         option.value = value
         option.text = text
+        if(value==0) option.selected = true
         // let select = document.getElementById("selectid")
         select.appendChild(option)
         /*
